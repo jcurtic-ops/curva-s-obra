@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curva S — Control de Avance</title>
+<link rel="manifest" href="#" id="pwa-manifest">
+<meta name="theme-color" content="#0a0c10">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Curva S">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+  :root{
+    --bg:#0d0f14;--panel:#13161e;--border:#1e2330;
+    --accent:#00e5a0;--accent2:#ff6b35;
+    --text:#c8d0e0;--text-dim:#5a6278;--text-bright:#eef0f5;
+    --prog:#00e5a0;--real:#ff6b35;--header-bg:#0a0c10;
+    --red-cell:rgba(255,80,80,.18);--green-cell:rgba(0,229,160,.13);
+    --ing:#3b9eff;--pro:#c97af7;--con:#f0c040;--gen:#00e5a0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;}
+
+  header{background:var(--header-bg);border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:200;}
+  header .logo{width:36px;height:36px;background:var(--accent);clip-path:polygon(0 0,100% 0,100% 70%,70% 100%,0 100%);flex-shrink:0;}
+  header h1{font-size:1.1rem;font-weight:800;color:var(--text-bright);letter-spacing:.08em;text-transform:uppercase;}
+  header span{font-family:'Space Mono',monospace;font-size:.72rem;color:var(--text-dim);margin-left:auto;}
+
+  .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--header-bg);padding:0 32px;}
+  .tab-btn{padding:12px 22px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;text-transform:uppercase;letter-spacing:.06em;transition:color .15s,border-color .15s;}
+  .tab-btn:hover{color:var(--text);}
+  .tab-btn.active{color:var(--text-bright);border-bottom-color:var(--accent);}
+  .tab-btn.active.ing{border-bottom-color:var(--ing);color:var(--ing);}
+  .tab-btn.active.pro{border-bottom-color:var(--pro);color:var(--pro);}
+  .tab-btn.active.con{border-bottom-color:var(--con);color:var(--con);}
+  .tab-btn.active.gen{border-bottom-color:var(--gen);color:var(--gen);}
+  .tab-btn.active.campo{border-bottom-color:#f0a040;color:#f0a040;}
+  .tab-pane{display:none;}
+  .tab-pane.active{display:block;}
+
+  main{padding:28px 32px;max-width:1600px;margin:0 auto;display:flex;flex-direction:column;gap:28px;}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .card-header{background:var(--header-bg);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .card-header .tag{font-family:'Space Mono',monospace;font-size:.65rem;background:var(--accent);color:#000;padding:2px 8px;border-radius:2px;font-weight:700;}
+  .card-header .tag.real{background:var(--accent2);}
+  .card-header h2{font-size:.85rem;font-weight:600;color:var(--text-bright);text-transform:uppercase;letter-spacing:.1em;}
+  .card-body{padding:20px;}
+
+  .input-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;}
+  .input-block label{display:block;font-size:.72rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-family:'Space Mono',monospace;}
+  .input-block input[type="date"]{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text-bright);padding:8px 12px;border-radius:3px;font-family:'Space Mono',monospace;font-size:.82rem;outline:none;}
+  .input-block input[type="date"]:focus{border-color:var(--accent);}
+  .corte-input:focus{border-color:var(--accent2)!important;}
+  textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text-bright);padding:12px;border-radius:3px;font-family:'Space Mono',monospace;font-size:.78rem;line-height:1.6;resize:vertical;outline:none;min-height:110px;}
+  textarea:focus{border-color:var(--accent);}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border:none;border-radius:3px;font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.06em;transition:opacity .15s,transform .1s;}
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:var(--accent);color:#000;}
+  .btn-secondary{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+  .btn-danger{background:transparent;border:1px solid var(--accent2);color:var(--accent2);}
+  .btn:hover{opacity:.85;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+
+  .tbl-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:.8rem;}
+  thead tr{background:#0a0c10;}
+  thead th{padding:9px 12px;text-align:left;font-family:'Space Mono',monospace;font-size:.63rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);white-space:nowrap;}
+  tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+  tbody tr:hover{background:rgba(255,255,255,.02);}
+  tbody td{padding:8px 12px;color:var(--text);white-space:nowrap;}
+  tbody td.mono{font-family:'Space Mono',monospace;font-size:.75rem;}
+  tbody td.accent{color:var(--accent);font-family:'Space Mono',monospace;}
+  tbody td.task-name{font-weight:600;color:var(--text-bright);}
+
+  .gantt-wrap{overflow-x:auto;}
+  .gantt-table{border-collapse:collapse;font-size:.72rem;}
+  .gantt-table th,.gantt-table td{border:1px solid var(--border);padding:0;}
+  .gantt-table .row-label{padding:6px 12px;font-weight:600;color:var(--text-bright);background:var(--header-bg);white-space:nowrap;min-width:90px;}
+  .gantt-table .col-head{padding:4px 2px;text-align:center;font-family:'Space Mono',monospace;font-size:.58rem;color:var(--text-dim);background:var(--header-bg);min-width:26px;width:26px;}
+  .gantt-table .col-head.week-start{border-left:2px solid var(--accent)!important;}
+  .gantt-cell{width:26px;height:26px;}
+  .gantt-cell.prog{background:var(--accent);opacity:.85;}
+  .gantt-cell.empty{background:transparent;}
+  .gantt-cell.critica{background:#ff3b3b;opacity:.9;}
+
+  /* RUTA CRÍTICA TABLE */
+  .crit-restrict{width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text-bright);font-family:'Space Mono',monospace;font-size:.72rem;padding:3px 4px;outline:none;resize:none;min-height:28px;}
+  .crit-restrict:focus{border-bottom-color:var(--accent);}
+  tr.row-crit td{border-left:3px solid #ff3b3b;}
+
+  /* CAMPO TAB */
+  .campo-form{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:660px;}
+  @media(max-width:600px){.campo-form{grid-template-columns:1fr;}}
+  .campo-field label{display:block;font-size:.7rem;color:var(--text-dim);font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;}
+  .campo-field input,.campo-field select,.campo-field textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text-bright);padding:9px 12px;border-radius:3px;font-family:'Space Mono',monospace;font-size:.82rem;outline:none;}
+  .campo-field input:focus,.campo-field select:focus,.campo-field textarea:focus{border-color:var(--accent);}
+  .campo-field select option{background:var(--panel);}
+  .campo-field textarea{resize:vertical;min-height:60px;}
+  .campo-unit-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.25);border-radius:3px;padding:4px 12px;font-family:'Space Mono',monospace;font-size:.78rem;color:var(--accent);margin-top:6px;}
+  .campo-log-row{display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:.78rem;flex-wrap:wrap;}
+  .campo-log-row:hover{background:rgba(255,255,255,.02);}
+  .campo-log-tag{font-family:'Space Mono',monospace;font-size:.68rem;background:rgba(0,229,160,.1);color:var(--accent);padding:2px 8px;border-radius:2px;}
+  .success-flash{animation:flash .5s ease;}
+  @keyframes flash{0%{background:rgba(0,229,160,.2);}100%{background:transparent;}}
+
+  /* T3 sticky */
+  .ratio-toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:3px;overflow:hidden;}
+  .ratio-toggle button{padding:5px 14px;background:transparent;border:none;color:var(--text-dim);font-family:'Space Mono',monospace;font-size:.7rem;cursor:pointer;transition:background .15s,color .15s;}
+  .ratio-toggle button.active{background:var(--accent);color:#000;font-weight:700;}
+  .t3-wrap{overflow-x:auto;}
+  .t3-wrap table{border-collapse:separate;border-spacing:0;}
+  .t3-wrap thead th.t3-s,.t3-wrap tbody td.t3-s{position:sticky;z-index:3;border-right:1px solid var(--border);}
+  .t3-wrap thead th.t3-s{background:#0a0c10;z-index:4;}
+  .t3-wrap tbody td.t3-s{background:var(--panel);}
+  .t3-col-a{left:0;min-width:88px;}
+  .t3-col-b{left:88px;min-width:58px;}
+  .t3-col-c{left:146px;min-width:84px;border-right:2px solid var(--accent)!important;}
+  .t3-input{width:54px;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text-bright);font-family:'Space Mono',monospace;font-size:.72rem;padding:4px 2px;text-align:center;outline:none;}
+  .t3-input:focus{border-bottom-color:var(--accent2);}
+  .t3-input.over-r{background:var(--green-cell);color:#00e5a0;}
+  .t3-input.under-r{background:var(--red-cell);color:#ff5555;}
+
+  /* CHART + subtable */
+  .chart-container{position:relative;height:340px;background:var(--bg);border-radius:3px;padding:14px 6px 6px;}
+  canvas{width:100%!important;}
+  .chart-subtable{overflow-x:auto;margin-top:0;border-top:1px solid var(--border);}
+  .chart-subtable table{border-collapse:collapse;}
+  .chart-subtable th{background:var(--header-bg);padding:6px 10px;font-family:'Space Mono',monospace;font-size:.6rem;color:var(--text-dim);text-transform:uppercase;border:1px solid var(--border);white-space:nowrap;text-align:center;}
+  .chart-subtable td{padding:5px 10px;font-family:'Space Mono',monospace;font-size:.68rem;border:1px solid var(--border);text-align:center;white-space:nowrap;}
+  .sub-prog{color:var(--prog);}
+  .sub-real{color:var(--real);}
+  .sub-var-pos{color:var(--prog);font-weight:700;}
+  .sub-var-neg{color:var(--real);font-weight:700;}
+  .sub-dim{color:var(--text-dim);}
+
+  .val-prog{color:var(--prog);font-family:'Space Mono',monospace;}
+  .val-real{color:var(--real);font-family:'Space Mono',monospace;}
+  .val-spi{font-family:'Space Mono',monospace;font-weight:700;}
+  .val-acc{font-weight:700;}
+
+  .corte-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,107,53,.12);border:1px solid rgba(255,107,53,.35);border-radius:3px;padding:3px 10px;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--accent2);}
+  .csv-import-zone{border:1px dashed var(--border);border-radius:3px;padding:14px;margin-top:12px;}
+  input[type="file"]{display:none;}
+  .alert{background:rgba(255,107,53,.1);border:1px solid rgba(255,107,53,.3);padding:10px 14px;border-radius:3px;font-size:.78rem;color:var(--accent2);margin-top:10px;display:none;}
+  .alert.show{display:block;}
+
+  #conflict-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;align-items:center;justify-content:center;}
+  #conflict-modal.show{display:flex;}
+  .modal-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:24px;max-width:540px;width:90%;max-height:80vh;overflow-y:auto;}
+  .modal-box h3{color:var(--text-bright);margin-bottom:12px;}
+  .conflict-row{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:9px 12px;margin-bottom:7px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .conflict-row .info{flex:1;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--text-dim);}
+  .conflict-row .info strong{color:var(--text-bright);}
+  .pick-btn{padding:3px 11px;border-radius:2px;border:1px solid var(--border);font-family:'Space Mono',monospace;font-size:.68rem;cursor:pointer;background:transparent;color:var(--text);}
+  .pick-btn.sel-manual{border-color:var(--accent);color:var(--accent);background:rgba(0,229,160,.1);}
+  .pick-btn.sel-csv{border-color:var(--accent2);color:var(--accent2);background:rgba(255,107,53,.1);}
+  .modal-actions{display:flex;gap:10px;margin-top:14px;justify-content:flex-end;}
+
+  .section-label{font-family:'Space Mono',monospace;font-size:.63rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:.1em;padding:5px 0 2px;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:700px){.two-col{grid-template-columns:1fr;}}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:var(--bg);}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"></div>
+  <h1>Curva S — Control de Avance de Obra</h1>
+  <span id="hdr-date"></span>
+  <span id="sync-badge" style="font-family:'Space Mono',monospace;font-size:.68rem;color:#5a6278;margin-left:12px;">Conectando…</span>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn gen active" onclick="switchTab('general')">▣ General</button>
+  <button class="tab-btn ing"        onclick="switchTab('ing')">◈ Ingeniería</button>
+  <button class="tab-btn pro"        onclick="switchTab('pro')">◈ Procura</button>
+  <button class="tab-btn con"        onclick="switchTab('con')">◈ Construcción</button>
+  <button class="tab-btn campo"      onclick="switchTab('campo')">📍 Campo</button>
+</div>
+
+<div id="conflict-modal">
+  <div class="modal-box">
+    <h3>⚠ Conflictos al importar CSV</h3>
+    <p style="font-size:.76rem;color:var(--text-dim);margin-bottom:12px;">Elegí qué valor usar en cada casilla.</p>
+    <div id="conflict-list"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="resolverTodos('manual')">Todos → Manual</button>
+      <button class="btn btn-danger"    onclick="resolverTodos('csv')">Todos → CSV</button>
+      <button class="btn btn-primary"   onclick="aplicarConflictos()">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TAB GENERAL ══ -->
+<div id="tab-general" class="tab-pane active">
+<main>
+  <div class="card">
+    <div class="card-header"><span class="tag">INPUT</span><h2>Parámetros del Proyecto</h2></div>
+    <div class="card-body">
+      <div class="input-grid">
+        <div class="input-block">
+          <label>Fecha de Inicio</label>
+          <input type="date" id="fecha-inicio">
+        </div>
+        <div class="input-block">
+          <label>Fecha de Corte</label>
+          <input type="date" id="fecha-corte" class="corte-input">
+        </div>
+      </div>
+      <div class="alert" id="alert-main" style="margin-top:10px;"></div>
+
+      <div class="two-col" style="margin-top:18px;">
+        <div>
+          <p class="section-label" style="color:var(--ing);">▸ CSV Ingeniería — (tarea,unidad,metrado,duracion,precedencias,hitos,precio_unit)</p>
+          <textarea id="csv-ing" spellcheck="false">tarea,unidad,metrado,duracion,precedencias,hitos,precio_unit
+Diseño,glb,1,20,,,50000
+Planos,glb,1,15,Diseño-FC,,30000</textarea>
+        </div>
+        <div>
+          <p class="section-label" style="color:var(--pro);">▸ CSV Procura</p>
+          <textarea id="csv-pro" spellcheck="false">tarea,unidad,metrado,duracion,precedencias,hitos,precio_unit
+OC,glb,1,10,Diseño-FC,"10/01/2026:50;20/01/2026:100",80000
+Entrega,tn,50,20,OC-FC,,1200</textarea>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <p class="section-label" style="color:var(--con);">▸ CSV Construcción</p>
+        <textarea id="csv-con" spellcheck="false">tarea,unidad,metrado,duracion,precedencias,hitos,precio_unit
+Civil,m3,100,30,Entrega-FC,,1500
+Electrico,ml,200,25,Civil-CC+5,,85
+Pruebas,glb,1,10,Electrico-FC,,20000</textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="procesarTodo()">▶ Generar Todo</button>
+        <button class="btn btn-secondary" onclick="exportarCSVPlantilla()">↓ CSV ejemplo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Curva S General -->
+  <div class="card hidden" id="sec-chart-gen">
+    <div class="card-header">
+      <span class="tag">S</span>
+      <h2>Curva S General — Avance Total del Proyecto</h2>
+      <span id="corte-badge-gen" class="corte-badge hidden" style="margin-left:auto;"></span>
+    </div>
+    <div class="card-body" style="padding-bottom:0;">
+      <div class="chart-container"><canvas id="curvaS-gen"></canvas></div>
+      <div class="chart-subtable"><table id="subtable-gen"></table></div>
+    </div>
+    <div style="padding:12px 20px;display:flex;gap:20px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:7px;font-size:.75rem;"><div style="width:22px;height:2px;background:var(--prog);"></div>Programado</div>
+      <div style="display:flex;align-items:center;gap:7px;font-size:.75rem;"><div style="width:22px;height:2px;background:var(--real);"></div>Real</div>
+    </div>
+  </div>
+
+  <!-- RUTA CRÍTICA -->
+  <div class="card hidden" id="sec-critica">
+    <div class="card-header">
+      <span class="tag" style="background:#ff3b3b;color:#fff;">CPM</span>
+      <h2>Ruta Crítica del Proyecto</h2>
+      <span style="font-family:'Space Mono',monospace;font-size:.68rem;color:var(--text-dim);margin-left:auto;">Holgura = 0 · marcadas en rojo en el Gantt</span>
+    </div>
+    <div class="card-body"><div class="tbl-wrap"><table id="tabla-critica"></table></div></div>
+  </div>
+
+  <!-- T4 General % -->
+  <div class="card hidden" id="sec-t4-gen">
+    <div class="card-header"><span class="tag">T4</span><h2>Valorizado Semanal % — General</h2></div>
+    <div class="card-body"><div class="tbl-wrap"><table id="tabla4-gen"></table></div></div>
+  </div>
+
+  <!-- T4 General Costo -->
+  <div class="card hidden" id="sec-t4c-gen">
+    <div class="card-header"><span class="tag" style="background:#f0c040;color:#000;">T4$</span><h2>Valorizado Semanal Costo — General</h2></div>
+    <div class="card-body"><div class="tbl-wrap"><table id="tabla4c-gen"></table></div></div>
+  </div>
+</main>
+</div>
+
+<!-- ══ TABS SECCIONES ══ -->
+<div id="tab-campo" class="tab-pane">
+<main>
+  <div class="card">
+    <div class="card-header">
+      <span class="tag" style="background:#f0a040;color:#000;">CAMPO</span>
+      <h2>Registro de Avance Diario — Construcción</h2>
+    </div>
+    <div class="card-body">
+      <p style="font-size:.78rem;color:var(--text-dim);margin-bottom:18px;">
+        Registrá el avance ejecutado por partida. Los valores se guardan directamente en la Tabla 3 de Construcción.
+      </p>
+      <div class="campo-form">
+        <div class="campo-field">
+          <label>Fecha de ejecución</label>
+          <input type="date" id="campo-fecha">
+        </div>
+        <div class="campo-field">
+          <label>Partida</label>
+          <select id="campo-tarea" onchange="onCampoTareaChange()">
+            <option value="">— Seleccioná una partida —</option>
+          </select>
+          <div class="campo-unit-badge hidden" id="campo-unit-badge">
+            <span id="campo-unit-label">—</span>
+          </div>
+        </div>
+        <div class="campo-field">
+          <label>Metrado ejecutado</label>
+          <input type="number" id="campo-metrado" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="campo-field">
+          <label>Comentario (opcional)</label>
+          <textarea id="campo-comentario" placeholder="Observaciones, condiciones, cuadrilla..."></textarea>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="guardarCampo()">✔ Guardar registro</button>
+        <button class="btn btn-secondary" onclick="exportarLogCampo()">↓ Exportar log campo</button>
+        <button class="btn btn-danger" onclick="limpiarFormCampo()">✕ Limpiar</button>
+      </div>
+      <div id="campo-alert" class="alert" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="tag real">LOG</span>
+      <h2>Registros Guardados</h2>
+      <button class="btn btn-danger" style="margin-left:auto;padding:5px 14px;font-size:.72rem;" onclick="borrarTodoLog()">✕ Borrar todo</button>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div id="campo-log-list">
+        <p style="padding:20px;font-size:.78rem;color:var(--text-dim);">Sin registros aún.</p>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<div id="tab-ing" class="tab-pane"><main id="main-ing"></main></div>
+<div id="tab-pro" class="tab-pane"><main id="main-pro"></main></div>
+<div id="tab-con" class="tab-pane"><main id="main-con"></main></div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  ESTADO
+// ══════════════════════════════════════════════════
+const SECS=['ing','pro','con'];
+const SEC_LABEL={ing:'Ingeniería',pro:'Procura',con:'Construcción'};
+const SEC_COLOR={ing:'#3b9eff',pro:'#c97af7',con:'#f0c040'};
+
+const SSTATE={
+  ing:{tareas:[],durTotal:0,semanas:0,realDiario:{},ratioMode:'diario'},
+  pro:{tareas:[],durTotal:0,semanas:0,realDiario:{},ratioMode:'diario'},
+  con:{tareas:[],durTotal:0,semanas:0,realDiario:{},ratioMode:'diario'},
+};
+let GLOBAL={fechaInicio:null,fechaCorte:null,durTotal:0,semanas:0};
+let chartInstances={ing:null,pro:null,con:null,gen:null};
+let pendingConflicts=[],pendingConflictsSec=null;
+
+// ══════════════════════════════════════════════════
+//  INIT / TABS
+// ══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  const h=new Date();
+  document.getElementById('fecha-inicio').value=fmtDateInput(h);
+  document.getElementById('fecha-corte').value=fmtDateInput(h);
+  document.getElementById('hdr-date').textContent=
+    h.toLocaleDateString('es-PE',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+});
+function switchTab(n){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  const cls=n==='general'?'gen':n;
+  document.querySelector(`.tab-btn.${cls}`).classList.add('active');
+  document.getElementById(`tab-${n}`).classList.add('active');
+}
+
+// ══════════════════════════════════════════════════
+//  DATE UTILS
+// ══════════════════════════════════════════════════
+function fmtDateInput(d){return d.toISOString().split('T')[0];}
+function addDias(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+function fmtShort(d){return`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;}
+function fmtDate(d){return d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit',year:'2-digit'});}
+function fmtMoney(v){return v>=1e6?`${(v/1e6).toFixed(2)}M`:v>=1e3?`${(v/1e3).toFixed(1)}k`:`${v.toFixed(0)}`;}
+
+// ══════════════════════════════════════════════════
+//  CSV PARSING
+// ══════════════════════════════════════════════════
+function splitLine(line){
+  const r=[];let c='';let q=false;
+  for(const ch of line){if(ch==='"'){q=!q;}else if(ch===','&&!q){r.push(c);c='';}else c+=ch;}
+  r.push(c);return r;
+}
+function parseCSV(raw){
+  const lines=raw.trim().split('\n').filter(l=>l.trim());
+  const hdr=lines[0].toLowerCase().split(',').map(s=>s.trim());
+  return lines.slice(1).map(l=>{
+    const cols=splitLine(l);
+    const o={};hdr.forEach((h,i)=>o[h]=(cols[i]||'').trim().replace(/^"|"$/g,''));
+    return o;
+  });
+}
+function parseHitos(str,fi){
+  if(!str||!str.trim())return null;
+  return str.split(';').map(p=>{
+    const[fs,ps]=p.trim().split(':');
+    const[d,m,y]=fs.split('/').map(Number);
+    return{diaRel:Math.round((new Date(y,m-1,d)-fi)/864e5),pct:parseFloat(ps)||0};
+  }).sort((a,b)=>a.diaRel-b.diaRel);
+}
+function parsePred(str){
+  if(!str||!str.trim())return null;
+  const m=str.match(/^([A-Za-z0-9_]+)-(FC|CC|FF|CF)([+-]\d+)?$/i);
+  if(!m)return null;
+  return{dep:m[1].toUpperCase(),tipo:m[2].toUpperCase(),offset:m[3]?parseInt(m[3]):0};
+}
+function calcFechas(tareas){
+  const map={};tareas.forEach(t=>{map[t.nombre.toUpperCase()]=t;t.inicioD=null;t.finD=null;});
+  function r(t,d){
+    if(d>80||t.inicioD!==null)return;
+    const p=parsePred(t.prec);
+    if(!p){t.inicioD=0;}
+    else{
+      const dep=map[p.dep];if(!dep){t.inicioD=0;}
+      else{
+        r(dep,d+1);
+        if(p.tipo==='FC')     t.inicioD=dep.inicioD+dep.duracion+p.offset;
+        else if(p.tipo==='CC')t.inicioD=dep.inicioD+p.offset;
+        else if(p.tipo==='FF')t.inicioD=dep.inicioD+dep.duracion+p.offset-t.duracion;
+        else if(p.tipo==='CF')t.inicioD=dep.inicioD+p.offset-t.duracion;
+        if(t.inicioD<0)t.inicioD=0;
+      }
+    }
+    t.finD=t.inicioD+t.duracion-1;
+  }
+  tareas.forEach(t=>r(t,0));
+}
+
+// ══════════════════════════════════════════════════
+//  PROCESAR TODO
+// ══════════════════════════════════════════════════
+window.procesarTodo = function(){
+  const fiStr=document.getElementById('fecha-inicio').value;
+  const fcStr=document.getElementById('fecha-corte').value;
+  if(!fiStr){showAlert('Ingresá la fecha de inicio.');return;}
+  const fi=new Date(fiStr+'T00:00:00');
+  const fc=fcStr?new Date(fcStr+'T00:00:00'):null;
+  let maxDur=0;
+  for(const sec of SECS){
+    let rows;try{rows=parseCSV(document.getElementById(`csv-${sec}`).value);}
+    catch(e){showAlert(`Error CSV ${SEC_LABEL[sec]}.`);return;}
+    const tareas=rows.map(r=>({
+      nombre:r.tarea,unidad:r.unidad,
+      metrado:parseFloat(r.metrado)||0,
+      duracion:parseInt(r.duracion)||1,
+      prec:(r.precedencias||'').trim(),
+      hitos:parseHitos(r.hitos||'',fi),
+      precioUnit:parseFloat(r.precio_unit||r['precio_unit']||0)||0,
+      ratio:0,inicioD:null,finD:null,
+    }));
+    tareas.forEach(t=>{t.ratio=t.metrado/t.duracion;t.costoTotal=t.metrado*t.precioUnit;});
+    calcFechas(tareas);
+    const dur=tareas.length?Math.max(...tareas.map(t=>t.finD))+1:0;
+    SSTATE[sec].tareas=tareas;SSTATE[sec].durTotal=dur;
+    SSTATE[sec].semanas=Math.ceil(dur/7);SSTATE[sec].realDiario={};
+    if(dur>maxDur)maxDur=dur;
+  }
+  GLOBAL={fechaInicio:fi,fechaCorte:fc,durTotal:maxDur,semanas:Math.ceil(maxDur/7)};
+  hideAlert();
+  for(const sec of SECS){
+    buildSecHTML(sec);
+    renderT1(sec);renderGantt(sec);renderT3(sec);calcRealSec(sec);
+  }
+  renderCurvaGeneral();
+  ['sec-chart-gen','sec-critica','sec-t4-gen','sec-t4c-gen'].forEach(id=>document.getElementById(id).classList.remove('hidden'));
+  const bg=document.getElementById('corte-badge-gen');
+  if(fc){bg.textContent=`✂ Corte: ${fmtDate(fc)}`;bg.classList.remove('hidden');}
+  else bg.classList.add('hidden');
+
+  // Ruta crítica + gantt global
+  renderGanttGlobal();
+  renderTablaCritica();
+
+  // Campo tab
+  initCampo();
+}
+
+// ══════════════════════════════════════════════════
+//  BUILD SECCIÓN HTML
+// ══════════════════════════════════════════════════
+function buildSecHTML(sec){
+  const cl=SEC_COLOR[sec],lb=SEC_LABEL[sec];
+  document.getElementById(`main-${sec}`).innerHTML=`
+  <div class="card">
+    <div class="card-header">
+      <span class="tag" style="background:${cl};color:#000;">${sec.toUpperCase()}</span>
+      <h2>${lb} — Resumen de Partidas</h2>
+      <span id="corte-badge-${sec}" class="corte-badge hidden" style="margin-left:auto;"></span>
+    </div>
+    <div class="card-body"><div class="tbl-wrap"><table id="tabla1-${sec}"></table></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="tag" style="background:${cl};color:#000;">GANTT</span><h2>Gantt — ${lb}</h2></div>
+    <div class="card-body"><div class="gantt-wrap" id="gantt-${sec}"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="tag real">T3</span><h2>Avance Real — ${lb}</h2>
+      <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+        <span style="font-family:'Space Mono',monospace;font-size:.68rem;color:var(--text-dim);">RATIO:</span>
+        <div class="ratio-toggle">
+          <button id="btn-rd-${sec}" class="active" onclick="setRatioMode('${sec}','diario')">Diario</button>
+          <button id="btn-rs-${sec}"               onclick="setRatioMode('${sec}','semanal')">Semanal</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="t3-wrap" id="t3w-${sec}"></div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="calcRealSec('${sec}')">↻ Actualizar</button>
+        <button class="btn btn-secondary" onclick="exportCSVReal('${sec}')">↓ Exportar real</button>
+      </div>
+      <div class="csv-import-zone" style="margin-top:14px;">
+        <p class="section-label">Importar CSV avance real — dia,tarea,cantidad</p>
+        <label class="btn btn-danger" style="cursor:pointer;margin-top:8px;" for="f-real-${sec}">↑ Cargar CSV real</label>
+        <input type="file" id="f-real-${sec}" accept=".csv,.txt" onchange="importCSVReal(event,'${sec}')">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="tag">T4</span><h2>Valorizado Semanal % — ${lb}</h2></div>
+    <div class="card-body"><div class="tbl-wrap"><table id="t4-${sec}"></table></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="tag" style="background:#f0c040;color:#000;">T4$</span><h2>Valorizado Semanal Costo — ${lb}</h2></div>
+    <div class="card-body"><div class="tbl-wrap"><table id="t4c-${sec}"></table></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="tag" style="background:${cl};color:#000;">S</span>
+      <h2>Curva S — ${lb}</h2>
+    </div>
+    <div class="card-body" style="padding-bottom:0;">
+      <div class="chart-container"><canvas id="cs-${sec}"></canvas></div>
+      <div class="chart-subtable"><table id="cst-${sec}"></table></div>
+    </div>
+    <div style="padding:10px 20px;display:flex;gap:20px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:7px;font-size:.75rem;"><div style="width:22px;height:2px;background:${cl};"></div>Programado</div>
+      <div style="display:flex;align-items:center;gap:7px;font-size:.75rem;"><div style="width:22px;height:2px;background:var(--real);"></div>Real</div>
+    </div>
+  </div>`;
+
+  const bg=document.getElementById(`corte-badge-${sec}`);
+  if(GLOBAL.fechaCorte){bg.textContent=`✂ Corte: ${fmtDate(GLOBAL.fechaCorte)}`;bg.classList.remove('hidden');}
+}
+
+// ══════════════════════════════════════════════════
+//  TABLA 1
+// ══════════════════════════════════════════════════
+function renderT1(sec){
+  const{tareas}=SSTATE[sec];const fi=GLOBAL.fechaInicio;
+  const tot=tareas.reduce((s,t)=>s+t.metrado,0);
+  const totC=tareas.reduce((s,t)=>s+t.costoTotal,0);
+  let h=`<thead><tr><th>Tarea</th><th>Unidad</th><th>Metrado</th><th>P.Unit</th><th>Costo Total</th>
+    <th>Duración(d)</th><th>Ratio(und/d)</th><th>Precedencia</th><th>Hitos</th>
+    <th>Ini(d)</th><th>Fin(d)</th><th>F.Inicio</th><th>F.Fin</th><th>%Peso</th><th>%PesoCosto</th>
+  </tr></thead><tbody>`;
+  tareas.forEach(t=>{
+    const p=tot>0?(t.metrado/tot*100).toFixed(1):'—';
+    const pc=totC>0?(t.costoTotal/totC*100).toFixed(1):'—';
+    const hs=t.hitos?t.hitos.map(h=>`d${h.diaRel}:${h.pct}%`).join('|'):'—';
+    h+=`<tr>
+      <td class="task-name">${t.nombre}</td><td class="mono">${t.unidad}</td>
+      <td class="mono">${t.metrado.toLocaleString()}</td>
+      <td class="mono">${t.precioUnit.toLocaleString()}</td>
+      <td class="accent">${t.costoTotal.toLocaleString()}</td>
+      <td class="mono">${t.duracion}</td><td class="accent">${t.ratio.toFixed(3)}</td>
+      <td class="mono">${t.prec||'—'}</td>
+      <td class="mono" style="font-size:.65rem;color:var(--text-dim);">${hs}</td>
+      <td class="mono">${t.inicioD}</td><td class="mono">${t.finD}</td>
+      <td class="mono">${fmtDate(addDias(fi,t.inicioD))}</td>
+      <td class="mono">${fmtDate(addDias(fi,t.finD))}</td>
+      <td class="accent">${p}%</td><td class="accent">${pc}%</td>
+    </tr>`;
+  });
+  document.getElementById(`tabla1-${sec}`).innerHTML=h+'</tbody>';
+}
+
+// ══════════════════════════════════════════════════
+//  GANTT
+// ══════════════════════════════════════════════════
+function renderGantt(sec){
+  const{tareas,durTotal}=SSTATE[sec];
+  let h='<table class="gantt-table"><thead><tr><th class="row-label">Tarea</th>';
+  for(let d=0;d<durTotal;d++)
+    h+=`<th class="col-head${d%7===0?' week-start':''}">${d%7===0?`S${Math.floor(d/7)+1}`:''}</th>`;
+  h+='</tr></thead><tbody>';
+  tareas.forEach(t=>{
+    h+=`<tr><td class="row-label">${t.nombre}</td>`;
+    for(let d=0;d<durTotal;d++)h+=`<td class="gantt-cell ${d>=t.inicioD&&d<=t.finD?'prog':'empty'}"></td>`;
+    h+='</tr>';
+  });
+  document.getElementById(`gantt-${sec}`).innerHTML=h+'</tbody></table>';
+}
+
+// ══════════════════════════════════════════════════
+//  TABLA 3
+// ══════════════════════════════════════════════════
+function renderT3(sec){
+  const{tareas,durTotal,ratioMode,realDiario}=SSTATE[sec];
+  const fi=GLOBAL.fechaInicio;
+  const fc=GLOBAL.fechaCorte;
+  const corteDia=fc?Math.round((fc-fi)/864e5):durTotal;
+  let h='<table><thead><tr>'
+    +'<th class="t3-s t3-col-a">Tarea</th>'
+    +'<th class="t3-s t3-col-b">Unidad</th>'
+    +'<th class="t3-s t3-col-c">Ratio</th>';
+  for(let d=0;d<durTotal;d++){
+    const f=addDias(fi,d);
+    h+=`<th style="min-width:54px;text-align:center;font-size:.58rem;">D${d+1}<br><span style="color:#3a4158;">${fmtShort(f)}</span></th>`;
+  }
+  h+='</tr></thead><tbody>';
+  tareas.forEach(t=>{
+    const rD=t.ratio,rS=rD*7;
+    const rL=ratioMode==='diario'?`${rD.toFixed(2)}/d`:`${rS.toFixed(2)}/s`;
+    h+=`<tr>
+      <td class="task-name t3-s t3-col-a">${t.nombre}</td>
+      <td class="mono t3-s t3-col-b">${t.unidad}</td>
+      <td class="accent t3-s t3-col-c" id="rc-${sec}-${t.nombre}" style="font-size:.7rem;">${rL}</td>`;
+    for(let d=0;d<durTotal;d++){
+      const inP=d>=t.inicioD&&d<=t.finD;
+      const key=`${t.nombre}-${d}`;
+      const val=realDiario[key]!==undefined?realDiario[key]:'';
+      const bgS=inP?'':`style="background:rgba(255,255,255,.02);"`;
+      const pC=d>corteDia?'style="background:rgba(255,107,53,.05);"':'';
+      h+=`<td ${bgS||pC} style="text-align:center;padding:3px 1px;">
+        <input class="t3-input" type="number" min="0" step="0.01"
+          data-sec="${sec}" data-tarea="${t.nombre}" data-dia="${d}"
+          value="${val}" onchange="onRC(this)" oninput="colorI(this)">
+      </td>`;
+    }
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  const w=document.getElementById(`t3w-${sec}`);
+  w.className='t3-wrap';w.innerHTML=h;
+  const tbl=w.querySelector('table');
+  if(tbl){tbl.style.borderCollapse='separate';tbl.style.borderSpacing='0';}
+  actualizarRatios(sec);
+}
+function onRC(el){
+  const s=el.dataset.sec,key=`${el.dataset.tarea}-${el.dataset.dia}`;
+  const v=parseFloat(el.value);
+  if(!isNaN(v)&&v>=0)SSTATE[s].realDiario[key]=v;else delete SSTATE[s].realDiario[key];
+  colorI(el);
+}
+function colorI(el){
+  const s=el.dataset.sec;
+  const t=SSTATE[s].tareas.find(x=>x.nombre===el.dataset.tarea);
+  if(!t||el.value===''||isNaN(parseFloat(el.value))){el.className='t3-input';return;}
+  const v=parseFloat(el.value);
+  const u=SSTATE[s].ratioMode==='diario'?t.ratio:t.ratio*7;
+  el.className=v>=u?'t3-input over-r':'t3-input under-r';
+}
+function setRatioMode(sec,m){
+  SSTATE[sec].ratioMode=m;
+  document.getElementById(`btn-rd-${sec}`).classList.toggle('active',m==='diario');
+  document.getElementById(`btn-rs-${sec}`).classList.toggle('active',m==='semanal');
+  actualizarRatios(sec);
+}
+function actualizarRatios(sec){
+  SSTATE[sec].tareas.forEach(t=>{
+    const c=document.getElementById(`rc-${sec}-${t.nombre}`);if(!c)return;
+    c.textContent=SSTATE[sec].ratioMode==='diario'?`${t.ratio.toFixed(2)}/d`:`${(t.ratio*7).toFixed(2)}/s`;
+  });
+  document.querySelectorAll(`.t3-input[data-sec="${sec}"]`).forEach(el=>colorI(el));
+}
+
+// ══════════════════════════════════════════════════
+//  CÁLCULO PROG / REAL
+// ══════════════════════════════════════════════════
+function calcProgDia(sec){
+  const{tareas,durTotal}=SSTATE[sec];
+  const totM=tareas.reduce((s,t)=>s+t.metrado,0);
+  const totC=tareas.reduce((s,t)=>s+t.costoTotal,0);
+  const pD=Array(durTotal).fill(0); // % avance
+  const cD=Array(durTotal).fill(0); // costo
+  tareas.forEach(t=>{
+    const pp=totM>0?t.metrado/totM*100:0;
+    const cp=t.costoTotal; // costo absoluto por día
+    if(t.hitos&&t.hitos.length>0){
+      let pPct=0,pDia=t.inicioD;
+      t.hitos.forEach(h=>{
+        const dp=h.pct-pPct,dd=Math.max(h.diaRel-pDia,1);
+        const rP=dp/dd*pp/100,rC=dp/100*cp/dd;
+        for(let d=pDia;d<h.diaRel&&d<durTotal;d++){pD[d]+=rP;cD[d]+=rC;}
+        pPct=h.pct;pDia=h.diaRel;
+      });
+    } else {
+      const rP=pp/t.duracion,rC=cp/t.duracion;
+      for(let d=t.inicioD;d<=t.finD&&d<durTotal;d++){pD[d]+=rP;cD[d]+=rC;}
+    }
+  });
+  return{pD,cD};
+}
+
+function calcRealDia(sec){
+  const{tareas,durTotal,realDiario}=SSTATE[sec];
+  const totM=tareas.reduce((s,t)=>s+t.metrado,0);
+  const fi=GLOBAL.fechaInicio,fc=GLOBAL.fechaCorte;
+  const corteDia=fc?Math.round((fc-fi)/864e5):Infinity;
+  const rP=Array(durTotal).fill(0);
+  const rC=Array(durTotal).fill(0);
+  tareas.forEach(t=>{
+    const pp=totM>0?t.metrado/totM*100:0;
+    for(let d=0;d<durTotal;d++){
+      if(d>corteDia)continue;
+      const key=`${t.nombre}-${d}`;
+      if(realDiario[key]!==undefined){
+        const ejec=realDiario[key];
+        rP[d]+=(ejec/t.metrado)*pp;
+        rC[d]+=ejec*t.precioUnit;
+      }
+    }
+  });
+  return{rP,rC};
+}
+
+function agrupar(arr,sem,dur){
+  return Array.from({length:sem},(_,s)=>{
+    let v=0;for(let d=s*7;d<Math.min((s+1)*7,dur);d++)v+=arr[d];return v;
+  });
+}
+function acum(arr){let a=0;return arr.map(v=>{a+=v;return a;});}
+
+window.calcRealSec = function(sec){
+  document.querySelectorAll(`.t3-input[data-sec="${sec}"]`).forEach(el=>{
+    const key=`${el.dataset.tarea}-${el.dataset.dia}`;
+    const v=parseFloat(el.value);
+    if(!isNaN(v)&&v>=0)SSTATE[sec].realDiario[key]=v;else delete SSTATE[sec].realDiario[key];
+  });
+  const{durTotal,semanas}=SSTATE[sec];
+  const{pD,cD}=calcProgDia(sec);
+  const{rP,rC}=calcRealDia(sec);
+  const spP=agrupar(pD,semanas,durTotal),spC=agrupar(cD,semanas,durTotal);
+  const srP=agrupar(rP,semanas,durTotal),srC=agrupar(rC,semanas,durTotal);
+  const spPA=acum(spP),spCA=acum(spC);
+  const srPA=acum(srP),srCA=acum(srC);
+  renderT4pct(sec,spP,srP,spPA,srPA);
+  renderT4cost(sec,spC,srC,spCA,srCA);
+  renderCurvaS(sec,spPA,srPA);
+  renderCurvaGeneral();
+}
+
+// ══════════════════════════════════════════════════
+//  TABLA 4 % 
+// ══════════════════════════════════════════════════
+function corteSem(fi,fc,semanas){
+  if(!fc)return semanas;
+  return Math.floor(Math.round((fc-fi)/864e5)/7);
+}
+function semHead(fi,durTotal,semanas){
+  let h='';
+  for(let s=0;s<semanas;s++){
+    const dF=Math.min((s+1)*7,durTotal)-1;
+    const f=addDias(fi,dF);
+    h+=`<th style="text-align:center;">Sem ${s+1}<br><span style="font-weight:400;color:var(--text-dim);font-size:.58rem;">${fmtShort(f)}</span></th>`;
+  }
+  return h;
+}
+
+function renderT4pct(sec,sP,sR,sPA,sRA){
+  const fi=GLOBAL.fechaInicio,fc=GLOBAL.fechaCorte;
+  const{semanas,durTotal}=SSTATE[sec];
+  const cs=corteSem(fi,fc,semanas);
+  let h=`<thead><tr><th>Concepto</th>${semHead(fi,durTotal,semanas)}</tr></thead><tbody>`;
+  const rows=[
+    {lb:'% Prog. Semana',   cls:'val-prog', data:sP,  fmt:v=>`${v.toFixed(2)}%`},
+    {lb:'% Real Semana',    cls:'val-real', data:sR,  fmt:v=>`${v.toFixed(2)}%`, rc:true},
+    {lb:'SPI',              cls:'val-spi',  data:sPA, fmt:(v,s)=>spiCell(sPA[s],sRA[s]),raw:true,rc:true,sep:true},
+    {lb:'% Prog. Acum.',    cls:'val-prog val-acc',data:sPA,fmt:v=>`${v.toFixed(2)}%`},
+    {lb:'% Real Acum.',     cls:'val-real val-acc',data:sRA,fmt:v=>`${v.toFixed(2)}%`,rc:true},
+    {lb:'Variación Acum.',  cls:'',         data:sPA, fmt:(v,s)=>varCell(sPA[s],sRA[s]),raw:true,rc:true},
+  ];
+  rows.forEach(row=>{
+    h+=`<tr style="${row.sep?'border-top:2px solid var(--border);':''}"><td class="task-name">${row.lb}</td>`;
+    for(let s=0;s<semanas;s++){
+      const dim=row.rc&&s>cs?'opacity:.35;':'';
+      const val=row.raw?row.fmt(row.data[s],s):row.fmt(row.data[s]);
+      h+=`<td class="${row.cls||''}" style="${dim}">${val}</td>`;
+    }
+    h+='</tr>';
+  });
+  document.getElementById(`t4-${sec}`).innerHTML=h+'</tbody>';
+}
+
+function spiCell(pa,ra){
+  if(pa<=0)return'<span style="color:var(--text-dim)">—</span>';
+  const spi=ra/pa;
+  return`<span style="color:${spi>=1?'var(--prog)':'var(--real)'}">${spi.toFixed(2)}</span>`;
+}
+function varCell(pa,ra){
+  const v=ra-pa;
+  return`<span style="color:${v>=0?'var(--prog)':'var(--real)'};">${v>=0?'+':''}${v.toFixed(2)}%</span>`;
+}
+
+// ══════════════════════════════════════════════════
+//  TABLA 4 COSTO
+// ══════════════════════════════════════════════════
+function renderT4cost(sec,sP,sR,sPA,sRA){
+  const fi=GLOBAL.fechaInicio,fc=GLOBAL.fechaCorte;
+  const{semanas,durTotal}=SSTATE[sec];
+  const cs=corteSem(fi,fc,semanas);
+  // SPI de costo = valor ganado / costo planificado = sRA/sPA
+  let h=`<thead><tr><th>Concepto</th>${semHead(fi,durTotal,semanas)}</tr></thead><tbody>`;
+  const rows=[
+    {lb:'Costo Prog. Semana',  data:sP,  fmt:v=>fmtMoney(v),cls:'val-prog'},
+    {lb:'Costo Real Semana',   data:sR,  fmt:v=>fmtMoney(v),cls:'val-real',rc:true},
+    {lb:'CPI',                 data:sPA, fmt:(v,s)=>spiCell(sPA[s],sRA[s]),raw:true,cls:'val-spi',rc:true,sep:true},
+    {lb:'Costo Prog. Acum.',   data:sPA, fmt:v=>fmtMoney(v),cls:'val-prog val-acc'},
+    {lb:'Costo Real Acum.',    data:sRA, fmt:v=>fmtMoney(v),cls:'val-real val-acc',rc:true},
+    {lb:'Variación Costo Acum.',data:sPA,fmt:(v,s)=>varCostCell(sPA[s],sRA[s]),raw:true,rc:true},
+  ];
+  rows.forEach(row=>{
+    h+=`<tr style="${row.sep?'border-top:2px solid var(--border);':''}"><td class="task-name">${row.lb}</td>`;
+    for(let s=0;s<semanas;s++){
+      const dim=row.rc&&s>cs?'opacity:.35;':'';
+      const val=row.raw?row.fmt(row.data[s],s):row.fmt(row.data[s]);
+      h+=`<td class="${row.cls||''}" style="${dim}">${val}</td>`;
+    }
+    h+='</tr>';
+  });
+  document.getElementById(`t4c-${sec}`).innerHTML=h+'</tbody>';
+}
+function varCostCell(pa,ra){
+  const v=ra-pa;
+  return`<span style="font-family:'Space Mono',monospace;color:${v>=0?'var(--prog)':'var(--real)'};">${v>=0?'+':''}${fmtMoney(Math.abs(v))}</span>`;
+}
+
+// ══════════════════════════════════════════════════
+//  CURVA S POR SECCIÓN
+// ══════════════════════════════════════════════════
+function autoYMax(a,b){
+  const mx=Math.max(...[...a,...b].filter(v=>v>0),1);
+  return mx<=10?15:Math.min(100,Math.ceil(mx/10)*10+5);
+}
+function semLabels(sem,dur,fi){
+  return Array.from({length:sem},(_,i)=>{
+    const dF=Math.min((i+1)*7,dur)-1;
+    return`S${i+1}\n${fmtShort(addDias(fi,dF))}`;
+  });
+}
+function gradFn(hex){
+  return c=>{
+    if(!c.chart.chartArea)return'transparent';
+    const g=c.chart.ctx.createLinearGradient(0,0,0,c.chart.height);
+    g.addColorStop(0,hex+'2a');g.addColorStop(1,hex+'03');return g;
+  };
+}
+function chartOpts(yMax,corteS){
+  return{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'#13161e',borderColor:'#2a2f3e',borderWidth:1,
+        titleColor:'#eef0f5',bodyColor:'#c8d0e0',padding:10,
+        callbacks:{
+          title:items=>items[0].label.replace('\n',' — '),
+          label:c=>c.parsed.y===null?null:` ${c.dataset.label}: ${c.parsed.y.toFixed(2)}%`
+        }
+      }
+    },
+    scales:{
+      x:{grid:{color:'rgba(30,35,48,.7)',drawTicks:false},ticks:{color:'#5a6278',font:{family:'Space Mono',size:9},maxRotation:0,callback:function(v){return this.getLabelForValue(v).split('\n');}}},
+      y:{min:0,max:yMax,grid:{color:'rgba(30,35,48,.7)',drawTicks:false},ticks:{color:'#5a6278',font:{family:'Space Mono',size:9},callback:v=>v+'%',maxTicksLimit:7},border:{dash:[4,4]}}
+    }
+  };
+}
+function makeDS(data,color,label,solid,fill,corteS){
+  const d=corteS!==null?data.map((v,i)=>i<=corteS?parseFloat(v.toFixed(3)):null):data.map(v=>parseFloat(v.toFixed(3)));
+  return{label,data:d,borderColor:color,backgroundColor:fill?gradFn(color):'transparent',
+    borderWidth:solid?2:1.5,borderDash:solid?[]:[5,3],
+    pointBackgroundColor:color,pointBorderColor:'#0d0f14',pointBorderWidth:1,
+    pointRadius:2,pointHoverRadius:5,tension:0.45,fill:fill,cubicInterpolationMode:'monotone',spanGaps:false};
+}
+
+function renderCurvaS(sec,progAcc,realAcc){
+  const{semanas,durTotal}=SSTATE[sec];
+  const fi=GLOBAL.fechaInicio,fc=GLOBAL.fechaCorte;
+  const labels=semLabels(semanas,durTotal,fi);
+  const cs=fc?corteSem(fi,fc,semanas):semanas-1;
+  const yMax=autoYMax(progAcc,realAcc);
+  const color=SEC_COLOR[sec];
+  if(chartInstances[sec]){chartInstances[sec].destroy();chartInstances[sec]=null;}
+  const ctx=document.getElementById(`cs-${sec}`);if(!ctx)return;
+  chartInstances[sec]=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[makeDS(progAcc,color,'Programado',true,true,null),makeDS(realAcc,'#ff6b35','Real',true,true,cs)]},
+    options:chartOpts(yMax,cs),
+  });
+  renderSubtable(`cst-${sec}`,semanas,durTotal,fi,progAcc,realAcc,cs);
+}
+
+// ══════════════════════════════════════════════════
+//  SUBTABLA BAJO CURVA S
+// ══════════════════════════════════════════════════
+function renderSubtable(tableId,semanas,durTotal,fi,progAcc,realAcc,corteS){
+  let h='<thead><tr><th style="text-align:left;">Concepto</th>';
+  for(let s=0;s<semanas;s++){
+    const dF=Math.min((s+1)*7,durTotal)-1;
+    h+=`<th>${fmtShort(addDias(fi,dF))}</th>`;
+  }
+  h+='</tr></thead><tbody>';
+
+  // % Prog Acum
+  h+='<tr><td class="sub-prog" style="text-align:left;font-family:\'Space Mono\',monospace;font-size:.65rem;">% Prog Acum</td>';
+  for(let s=0;s<semanas;s++)h+=`<td class="sub-prog">${progAcc[s].toFixed(1)}%</td>`;
+  h+='</tr>';
+
+  // % Real Acum
+  h+='<tr><td class="sub-real" style="text-align:left;font-family:\'Space Mono\',monospace;font-size:.65rem;">% Real Acum</td>';
+  for(let s=0;s<semanas;s++){
+    const dim=s>corteS?'sub-dim':'sub-real';
+    h+=`<td class="${dim}">${realAcc[s].toFixed(1)}%</td>`;
+  }
+  h+='</tr>';
+
+  // Variación
+  h+='<tr><td style="text-align:left;font-family:\'Space Mono\',monospace;font-size:.65rem;color:var(--text-dim);">Variación</td>';
+  for(let s=0;s<semanas;s++){
+    if(s>corteS){h+=`<td class="sub-dim">—</td>`;continue;}
+    const v=realAcc[s]-progAcc[s];
+    h+=`<td class="${v>=0?'sub-var-pos':'sub-var-neg'}">${v>=0?'+':''}${v.toFixed(1)}%</td>`;
+  }
+  h+='</tr></tbody>';
+
+  const el=document.getElementById(tableId);if(el)el.innerHTML=h;
+}
+
+// ══════════════════════════════════════════════════
+//  CURVA GENERAL (una sola prog + una sola real)
+// ══════════════════════════════════════════════════
+function renderCurvaGeneral(){
+  const fi=GLOBAL.fechaInicio,fc=GLOBAL.fechaCorte;
+  const semanas=GLOBAL.semanas,durTotal=GLOBAL.durTotal;
+  if(!fi||semanas===0)return;
+
+  const totMetGlobal=SECS.reduce((s,sec)=>s+SSTATE[sec].tareas.reduce((a,t)=>a+t.metrado,0),0);
+  const pDG=Array(durTotal).fill(0),rDG=Array(durTotal).fill(0);
+  const cDG=Array(durTotal).fill(0),rcDG=Array(durTotal).fill(0);
+  const corteDia=fc?Math.round((fc-fi)/864e5):Infinity;
+
+  SECS.forEach(sec=>{
+    const secMet=SSTATE[sec].tareas.reduce((s,t)=>s+t.metrado,0);
+    const peso=totMetGlobal>0?secMet/totMetGlobal:1/3;
+    const{pD,cD}=calcProgDia(sec);
+    const{rP,rC}=calcRealDia(sec);
+    pD.forEach((v,d)=>{if(d<durTotal)pDG[d]+=v*peso;});
+    cD.forEach((v,d)=>{if(d<durTotal)cDG[d]+=v*peso;});
+    rP.forEach((v,d)=>{if(d<durTotal&&d<=corteDia)rDG[d]+=v*peso;});
+    rC.forEach((v,d)=>{if(d<durTotal&&d<=corteDia)rcDG[d]+=v*peso;});
+  });
+
+  const spP=agrupar(pDG,semanas,durTotal),srP=agrupar(rDG,semanas,durTotal);
+  const spC=agrupar(cDG,semanas,durTotal),srC=agrupar(rcDG,semanas,durTotal);
+  const spPA=acum(spP),srPA=acum(srP);
+  const spCA=acum(spC),srCA=acum(srC);
+
+  // T4 % general
+  renderT4pctGen(semanas,durTotal,spP,srP,spPA,srPA);
+  // T4 costo general
+  renderT4costGen(semanas,durTotal,spC,srC,spCA,srCA);
+
+  const labels=semLabels(semanas,durTotal,fi);
+  const cs=fc?corteSem(fi,fc,semanas):semanas-1;
+  const yMax=autoYMax(spPA,srPA);
+
+  if(chartInstances.gen){chartInstances.gen.destroy();chartInstances.gen=null;}
+  const ctx=document.getElementById('curvaS-gen');if(!ctx)return;
+  chartInstances.gen=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[
+      makeDS(spPA,'#00e5a0','Programado',true,true,null),
+      makeDS(srPA,'#ff6b35','Real',true,true,cs),
+    ]},
+    options:chartOpts(yMax,cs),
+  });
+  renderSubtable('subtable-gen',semanas,durTotal,fi,spPA,srPA,cs);
+}
+
+function renderT4pctGen(semanas,durTotal,sP,sR,sPA,sRA){
+  const fi=GLOBAL.fechaInicio,fc=GLOBAL.fechaCorte;
+  const cs=corteSem(fi,fc,semanas);
+  let h=`<thead><tr><th>Concepto</th>${semHead(fi,durTotal,semanas)}</tr></thead><tbody>`;
+  [
+    {lb:'% Prog. Semana',cls:'val-prog',data:sP,fmt:v=>`${v.toFixed(2)}%`},
+    {lb:'% Real Semana',cls:'val-real',data:sR,fmt:v=>`${v.toFixed(2)}%`,rc:true},
+    {lb:'SPI',cls:'val-spi',data:sPA,fmt:(v,s)=>spiCell(sPA[s],sRA[s]),raw:true,rc:true,sep:true},
+    {lb:'% Prog. Acum.',cls:'val-prog val-acc',data:sPA,fmt:v=>`${v.toFixed(2)}%`},
+    {lb:'% Real Acum.',cls:'val-real val-acc',data:sRA,fmt:v=>`${v.toFixed(2)}%`,rc:true},
+    {lb:'Variación Acum.',cls:'',data:sPA,fmt:(v,s)=>varCell(sPA[s],sRA[s]),raw:true,rc:true},
+  ].forEach(row=>{
+    h+=`<tr style="${row.sep?'border-top:2px solid var(--border);':''}"><td class="task-name">${row.lb}</td>`;
+    for(let s=0;s<semanas;s++){
+      const dim=row.rc&&s>cs?'opacity:.35;':'';
+      h+=`<td class="${row.cls||''}" style="${dim}">${row.raw?row.fmt(row.data[s],s):row.fmt(row.data[s])}</td>`;
+    }
+    h+='</tr>';
+  });
+  document.getElementById('tabla4-gen').innerHTML=h+'</tbody>';
+}
+
+function renderT4costGen(semanas,durTotal,sP,sR,sPA,sRA){
+  const fi=GLOBAL.fechaInicio,fc=GLOBAL.fechaCorte;
+  const cs=corteSem(fi,fc,semanas);
+  let h=`<thead><tr><th>Concepto</th>${semHead(fi,durTotal,semanas)}</tr></thead><tbody>`;
+  [
+    {lb:'Costo Prog. Semana',cls:'val-prog',data:sP,fmt:v=>fmtMoney(v)},
+    {lb:'Costo Real Semana',cls:'val-real',data:sR,fmt:v=>fmtMoney(v),rc:true},
+    {lb:'CPI',cls:'val-spi',data:sPA,fmt:(v,s)=>spiCell(sPA[s],sRA[s]),raw:true,rc:true,sep:true},
+    {lb:'Costo Prog. Acum.',cls:'val-prog val-acc',data:sPA,fmt:v=>fmtMoney(v)},
+    {lb:'Costo Real Acum.',cls:'val-real val-acc',data:sRA,fmt:v=>fmtMoney(v),rc:true},
+    {lb:'Variación Costo',cls:'',data:sPA,fmt:(v,s)=>varCostCell(sPA[s],sRA[s]),raw:true,rc:true},
+  ].forEach(row=>{
+    h+=`<tr style="${row.sep?'border-top:2px solid var(--border);':''}"><td class="task-name">${row.lb}</td>`;
+    for(let s=0;s<semanas;s++){
+      const dim=row.rc&&s>cs?'opacity:.35;':'';
+      h+=`<td class="${row.cls||''}" style="${dim}">${row.raw?row.fmt(row.data[s],s):row.fmt(row.data[s])}</td>`;
+    }
+    h+='</tr>';
+  });
+  document.getElementById('tabla4c-gen').innerHTML=h+'</tbody>';
+}
+
+// ══════════════════════════════════════════════════
+//  IMPORT / EXPORT CSV REAL
+// ══════════════════════════════════════════════════
+function importCSVReal(event,sec){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const csvData={};
+    e.target.result.trim().split('\n').forEach(line=>{
+      const p=line.split(',').map(s=>s.trim());
+      if(p.length<3||isNaN(parseInt(p[0])))return;
+      const key=`${p[1].toUpperCase()}-${parseInt(p[0])-1}`;
+      const v=parseFloat(p[2]);if(!isNaN(v)&&v>=0)csvData[key]=v;
+    });
+    const conflicts=Object.entries(csvData)
+      .filter(([k,v])=>SSTATE[sec].realDiario[k]!==undefined&&SSTATE[sec].realDiario[k]!==v)
+      .map(([k,v])=>({key:k,manual:SSTATE[sec].realDiario[k],csv:v,elegido:'csv'}));
+    if(conflicts.length>0){
+      window._csvPending=csvData;pendingConflicts=conflicts;pendingConflictsSec=sec;
+      abrirModal(conflicts);
+    } else {
+      Object.assign(SSTATE[sec].realDiario,csvData);
+      syncT3(sec);calcRealSec(sec);alert('CSV importado sin conflictos.');
+    }
+  };
+  reader.readAsText(file);event.target.value='';
+}
+function abrirModal(cs){
+  document.getElementById('conflict-list').innerHTML=cs.map((c,i)=>{
+    const p=c.key.split('-'),dia=parseInt(p[p.length-1])+1,tarea=p.slice(0,-1).join('-');
+    return`<div class="conflict-row"><div class="info"><strong>${tarea}</strong> · Día ${dia}<br>Manual: <strong>${c.manual}</strong> | CSV: <strong>${c.csv}</strong></div>
+    <div style="display:flex;gap:6px;">
+      <button class="pick-btn" id="pc-${i}-m" onclick="elegirC(${i},'manual')">Manual</button>
+      <button class="pick-btn sel-csv" id="pc-${i}-c" onclick="elegirC(${i},'csv')">CSV</button>
+    </div></div>`;
+  }).join('');
+  document.getElementById('conflict-modal').classList.add('show');
+}
+function elegirC(i,f){
+  pendingConflicts[i].elegido=f;
+  document.getElementById(`pc-${i}-m`).className='pick-btn'+(f==='manual'?' sel-manual':'');
+  document.getElementById(`pc-${i}-c`).className='pick-btn'+(f==='csv'?' sel-csv':'');
+}
+function resolverTodos(f){pendingConflicts.forEach((_,i)=>elegirC(i,f));}
+function aplicarConflictos(){
+  const sec=pendingConflictsSec,cd=window._csvPending||{};
+  Object.entries(cd).forEach(([k,v])=>{if(!pendingConflicts.find(c=>c.key===k))SSTATE[sec].realDiario[k]=v;});
+  pendingConflicts.forEach(c=>{SSTATE[sec].realDiario[c.key]=c.elegido==='csv'?c.csv:c.manual;});
+  syncT3(sec);calcRealSec(sec);
+  document.getElementById('conflict-modal').classList.remove('show');
+  pendingConflicts=[];window._csvPending=null;pendingConflictsSec=null;
+}
+function syncT3(sec){
+  document.querySelectorAll(`.t3-input[data-sec="${sec}"]`).forEach(el=>{
+    const k=`${el.dataset.tarea}-${el.dataset.dia}`;
+    el.value=SSTATE[sec].realDiario[k]!==undefined?SSTATE[sec].realDiario[k]:'';colorI(el);
+  });
+}
+function exportCSVReal(sec){
+  let csv='dia,tarea,cantidad\n';
+  Object.entries(SSTATE[sec].realDiario).forEach(([k,v])=>{
+    const p=k.split('-'),dia=parseInt(p[p.length-1])+1,t=p.slice(0,-1).join('-');
+    csv+=`${dia},${t},${v}\n`;
+  });
+  descargar(csv,`avance_real_${sec}.csv`,'text/csv');
+}
+function exportarCSVPlantilla(){
+  descargar(`tarea,unidad,metrado,duracion,precedencias,hitos,precio_unit
+Diseño,glb,1,20,,,50000
+Planos,glb,1,15,Diseño-FC,,30000
+OC,glb,1,10,Diseño-FC,"10/01/2026:50;20/01/2026:100",80000`,'partidas_ejemplo.csv','text/csv');
+}
+function descargar(c,n,t){const b=new Blob([c],{type:t});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();}
+
+
+// ══════════════════════════════════════════════════
+//  PERT-CPM — RUTA CRÍTICA GLOBAL
+// ══════════════════════════════════════════════════
+function calcularRutaCritica(){
+  // Recolectar todas las tareas de las 3 secciones con nombres únicos prefijados
+  const allTareas = [];
+  const secMap = {}; // nombre → sec
+  SECS.forEach(sec=>{
+    SSTATE[sec].tareas.forEach(t=>{
+      allTareas.push({...t, sec});
+      secMap[t.nombre.toUpperCase()] = sec;
+    });
+  });
+  if(!allTareas.length) return [];
+
+  const fi = GLOBAL.fechaInicio;
+
+  // Forward pass: ES y EF ya calculados (inicioD = ES, finD+1 = EF)
+  // Duracion total del proyecto
+  const proyDur = GLOBAL.durTotal;
+
+  // Backward pass: calcular LS y LF
+  // LF del proyecto = proyDur
+  // LF de cada tarea = min(LS de todas las tareas que la siguen)
+  // LS = LF - duracion
+
+  // Build successor map
+  const sucMap = {}; // nombre → lista de tareas sucesoras
+  allTareas.forEach(t=>{
+    if(!sucMap[t.nombre.toUpperCase()]) sucMap[t.nombre.toUpperCase()] = [];
+  });
+  allTareas.forEach(t=>{
+    const p = parsePred(t.prec);
+    if(p && sucMap[p.dep] !== undefined){
+      sucMap[p.dep].push(t);
+    }
+  });
+
+  // Initialize LF = proyDur for all, then backward pass
+  const LF = {}, LS = {};
+  allTareas.forEach(t=>{ LF[t.nombre] = proyDur; });
+
+  // Topological order (use finD desc for backward)
+  const sorted = [...allTareas].sort((a,b)=>b.finD - a.finD);
+  sorted.forEach(t=>{
+    const sucList = sucMap[t.nombre.toUpperCase()] || [];
+    if(sucList.length > 0){
+      // LF = min LS of successors (considering relationship type)
+      let minLS = proyDur;
+      sucList.forEach(s=>{
+        const p = parsePred(s.prec);
+        let sLS = LS[s.nombre] !== undefined ? LS[s.nombre] : s.inicioD;
+        if(p){
+          if(p.tipo === 'FC') minLS = Math.min(minLS, sLS - p.offset - t.duracion);
+          else if(p.tipo === 'CC') minLS = Math.min(minLS, sLS - p.offset);
+          else minLS = Math.min(minLS, sLS);
+        }
+      });
+      LF[t.nombre] = Math.max(t.finD + 1, minLS + t.duracion);
+    }
+    LS[t.nombre] = LF[t.nombre] - t.duracion;
+  });
+
+  // Holgura total = LS - ES (ES = inicioD)
+  const criticas = allTareas.map(t=>({
+    nombre: t.nombre,
+    sec: t.sec,
+    es: t.inicioD,
+    ef: t.finD,
+    ls: LS[t.nombre] !== undefined ? LS[t.nombre] : t.inicioD,
+    lf: LF[t.nombre] !== undefined ? LF[t.nombre] : t.finD+1,
+    holgura: (LS[t.nombre] !== undefined ? LS[t.nombre] : t.inicioD) - t.inicioD,
+  }));
+
+  return criticas;
+}
+
+function renderTablaCritica(){
+  const criticas = calcularRutaCritica();
+  const fi = GLOBAL.fechaInicio;
+  const critPath = criticas.filter(t => t.holgura <= 0);
+
+  let h = `<thead><tr>
+    <th>Tarea</th><th>Sección</th><th>Fecha Inicio</th><th>Fecha Fin</th>
+    <th>Holgura (d)</th><th>ES</th><th>EF</th><th>LS</th><th>LF</th>
+    <th style="min-width:200px;">Restricciones / Notas</th>
+  </tr></thead><tbody>`;
+
+  if(!critPath.length){
+    h += '<tr><td colspan="10" style="padding:20px;color:var(--text-dim);text-align:center;">No se detectaron tareas críticas. Verificá las precedencias en los CSV.</td></tr>';
+  } else {
+    critPath.forEach(t=>{
+      const fIni = fmtDate(addDias(fi, t.es));
+      const fFin = fmtDate(addDias(fi, t.ef));
+      const secColor = SEC_COLOR[t.sec] || 'var(--text-dim)';
+      const secLabel = SEC_LABEL[t.sec] || t.sec;
+      h += `<tr class="row-crit">
+        <td class="task-name">${t.nombre}</td>
+        <td><span style="font-family:'Space Mono',monospace;font-size:.7rem;color:${secColor};">${secLabel}</span></td>
+        <td class="mono">${fIni}</td>
+        <td class="mono">${fFin}</td>
+        <td class="mono" style="color:${t.holgura<0?'#ff5555':'#ff3b3b'};font-weight:700;">${t.holgura}</td>
+        <td class="mono" style="color:var(--text-dim);">${t.es}</td>
+        <td class="mono" style="color:var(--text-dim);">${t.ef}</td>
+        <td class="mono" style="color:var(--text-dim);">${t.ls}</td>
+        <td class="mono" style="color:var(--text-dim);">${t.lf}</td>
+        <td><textarea class="crit-restrict" placeholder="Ej: Permiso pendiente, restricción de acceso..." rows="1"
+          onchange="guardarRestriccion('${t.nombre}',this.value)">${CRIT_RESTRICCIONES[t.nombre]||''}</textarea></td>
+      </tr>`;
+    });
+  }
+  h += '</tbody>';
+  document.getElementById('tabla-critica').innerHTML = h;
+  return criticas; // return all for gantt coloring
+}
+
+// Persist restrictions in memory
+const CRIT_RESTRICCIONES = {};
+window.guardarRestriccion = function(nombre, val){ CRIT_RESTRICCIONES[nombre] = val; }
+
+// Gantt global coloring (critical cells)
+function renderGanttGlobal(){
+  // Build critical set
+  const criticas = calcularRutaCritica();
+  const critSet = new Set(criticas.filter(t=>t.holgura<=0).map(t=>t.nombre.toUpperCase()));
+  const fi = GLOBAL.fechaInicio, dur = GLOBAL.durTotal;
+  if(!dur) return;
+
+  // Collect all tasks across sections
+  const allT = [];
+  SECS.forEach(sec=>SSTATE[sec].tareas.forEach(t=>allT.push({...t,sec})));
+
+  let h = '<table class="gantt-table"><thead><tr><th class="row-label" style="min-width:110px;">Tarea</th><th class="row-label" style="min-width:70px;">Sección</th>';
+  for(let d=0;d<dur;d++)
+    h+=`<th class="col-head${d%7===0?' week-start':''}">${d%7===0?`S${Math.floor(d/7)+1}`:''}</th>`;
+  h += '</tr></thead><tbody>';
+
+  allT.forEach(t=>{
+    const isCrit = critSet.has(t.nombre.toUpperCase());
+    const color = SEC_COLOR[t.sec];
+    h += `<tr>
+      <td class="row-label" style="${isCrit?'border-left:3px solid #ff3b3b;':''}">${t.nombre}</td>
+      <td class="row-label" style="font-size:.65rem;color:${color};">${SEC_LABEL[t.sec]}</td>`;
+    for(let d=0;d<dur;d++){
+      const inR = d>=t.inicioD && d<=t.finD;
+      let cls = 'empty';
+      if(inR) cls = isCrit ? 'critica' : 'prog';
+      h += `<td class="gantt-cell ${cls}"></td>`;
+    }
+    h += '</tr>';
+  });
+  h += '</tbody></table>';
+
+  // Insert gantt general into sec-critica card or a dedicated slot
+  let ganttDiv = document.getElementById('gantt-global');
+  if(!ganttDiv){
+    // Create it inside the critica card
+    const cb = document.querySelector('#sec-critica .card-body');
+    const wrapper = document.createElement('div');
+    wrapper.id = 'gantt-global';
+    wrapper.className = 'gantt-wrap';
+    wrapper.style.marginBottom = '20px';
+    cb.insertBefore(wrapper, cb.firstChild);
+    ganttDiv = wrapper;
+  }
+  ganttDiv.innerHTML = h;
+}
+
+// ══════════════════════════════════════════════════
+//  CAMPO — REGISTRO DIARIO
+// ══════════════════════════════════════════════════
+let campoLog = []; // [{id, fecha, tarea, unidad, metrado, comentario}]
+
+function initCampo(){
+  const fi = GLOBAL.fechaInicio;
+  const hoy = new Date();
+  document.getElementById('campo-fecha').value = fmtDateInput(hoy);
+
+  const sel = document.getElementById('campo-tarea');
+  sel.innerHTML = '<option value="">— Seleccioná una partida —</option>';
+  SSTATE.con.tareas.forEach(t=>{
+    const opt = document.createElement('option');
+    opt.value = t.nombre;
+    opt.dataset.unidad = t.unidad;
+    opt.textContent = `${t.nombre} (${t.unidad})`;
+    sel.appendChild(opt);
+  });
+}
+
+function onCampoTareaChange(){
+  const sel = document.getElementById('campo-tarea');
+  const opt = sel.options[sel.selectedIndex];
+  const badge = document.getElementById('campo-unit-badge');
+  const label = document.getElementById('campo-unit-label');
+  if(opt && opt.value){
+    label.textContent = opt.dataset.unidad || '—';
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+window.guardarCampo = function(){
+  const fechaStr = document.getElementById('campo-fecha').value;
+  const tarea    = document.getElementById('campo-tarea').value;
+  const metrado  = parseFloat(document.getElementById('campo-metrado').value);
+  const coment   = document.getElementById('campo-comentario').value.trim();
+  const alertEl  = document.getElementById('campo-alert');
+
+  if(!fechaStr){ alertEl.textContent='⚠ Seleccioná una fecha.'; alertEl.classList.add('show'); return; }
+  if(!tarea)   { alertEl.textContent='⚠ Seleccioná una partida.'; alertEl.classList.add('show'); return; }
+  if(isNaN(metrado)||metrado<0){ alertEl.textContent='⚠ Ingresá un metrado válido.'; alertEl.classList.add('show'); return; }
+  alertEl.classList.remove('show');
+
+  const fi = GLOBAL.fechaInicio;
+  if(!fi){ alertEl.textContent='⚠ Primero generá las tablas desde la pestaña General.'; alertEl.classList.add('show'); return; }
+
+  const fecha = new Date(fechaStr+'T00:00:00');
+  const dia   = Math.round((fecha - fi) / 864e5);
+
+  if(dia < 0 || dia >= GLOBAL.durTotal){
+    alertEl.textContent=`⚠ Fecha fuera del rango del proyecto (día ${dia}). Verificá.`;
+    alertEl.classList.add('show'); return;
+  }
+
+  // Check if tarea exists in con
+  const tObj = SSTATE.con.tareas.find(t=>t.nombre===tarea);
+  if(!tObj){ alertEl.textContent='⚠ Partida no encontrada en Construcción.'; alertEl.classList.add('show'); return; }
+
+  // Save to realDiario (accumulate if same day+task already has value)
+  const key = `${tarea}-${dia}`;
+  const prev = SSTATE.con.realDiario[key] || 0;
+  SSTATE.con.realDiario[key] = prev + metrado;
+
+  // Sync T3 input if visible
+  const input = document.querySelector(`.t3-input[data-sec="con"][data-tarea="${tarea}"][data-dia="${dia}"]`);
+  if(input){ input.value = SSTATE.con.realDiario[key]; colorI(input); }
+
+  // Recalculate
+  calcRealSec('con');
+
+  // Log entry
+  const entry = { id: Date.now(), fechaStr, tarea, unidad: tObj.unidad, metrado, coment, dia, key };
+  campoLog.unshift(entry);
+  renderCampoLog();
+
+  // Flash and clear metrado+comment
+  document.getElementById('campo-metrado').value = '';
+  document.getElementById('campo-comentario').value = '';
+  const btn = document.querySelector('#tab-campo .btn-primary');
+  if(btn){ btn.classList.add('success-flash'); setTimeout(()=>btn.classList.remove('success-flash'),500); }
+}
+
+function renderCampoLog(){
+  const el = document.getElementById('campo-log-list');
+  if(!campoLog.length){
+    el.innerHTML = '<p style="padding:20px;font-size:.78rem;color:var(--text-dim);">Sin registros aún.</p>';
+    return;
+  }
+  el.innerHTML = campoLog.map(e=>`
+    <div class="campo-log-row" id="log-${e.id}">
+      <span class="campo-log-tag">${e.fechaStr}</span>
+      <span style="font-weight:600;color:var(--text-bright);flex:1;">${e.tarea}</span>
+      <span class="mono" style="color:var(--accent);">${e.metrado} ${e.unidad}</span>
+      ${e.coment?`<span style="color:var(--text-dim);font-size:.75rem;flex:2;">${e.coment}</span>`:''}
+      <button onclick="borrarLogEntry(${e.id})"
+        style="background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:.8rem;padding:2px 6px;">✕</button>
+    </div>`).join('');
+}
+
+window.borrarLogEntry = function(id){
+  const entry = campoLog.find(e=>e.id===id);
+  if(!entry) return;
+  // Restar del realDiario
+  const cur = SSTATE.con.realDiario[entry.key] || 0;
+  const nuevo = cur - entry.metrado;
+  if(nuevo <= 0) delete SSTATE.con.realDiario[entry.key];
+  else SSTATE.con.realDiario[entry.key] = nuevo;
+  // Sync input
+  const input = document.querySelector(`.t3-input[data-sec="con"][data-tarea="${entry.tarea}"][data-dia="${entry.dia}"]`);
+  if(input){ input.value = SSTATE.con.realDiario[entry.key]||''; colorI(input); }
+  campoLog = campoLog.filter(e=>e.id!==id);
+  calcRealSec('con');
+  renderCampoLog();
+}
+
+window.borrarTodoLog = function(){
+  if(!confirm('¿Borrar todos los registros del log? Los valores en T3 también se revertirán.')) return;
+  campoLog.forEach(e=>{
+    const cur = SSTATE.con.realDiario[e.key]||0;
+    const nuevo = cur - e.metrado;
+    if(nuevo<=0) delete SSTATE.con.realDiario[e.key];
+    else SSTATE.con.realDiario[e.key]=nuevo;
+  });
+  campoLog=[];
+  calcRealSec('con');
+  renderCampoLog();
+}
+
+function limpiarFormCampo(){
+  document.getElementById('campo-tarea').value='';
+  document.getElementById('campo-metrado').value='';
+  document.getElementById('campo-comentario').value='';
+  document.getElementById('campo-unit-badge').classList.add('hidden');
+  document.getElementById('campo-alert').classList.remove('show');
+}
+
+function exportarLogCampo(){
+  let csv='fecha,tarea,unidad,metrado,comentario\n';
+  [...campoLog].reverse().forEach(e=>{
+    csv+=`${e.fechaStr},${e.tarea},${e.unidad},${e.metrado},"${e.coment}"\n`;
+  });
+  descargar(csv,'log_campo.csv','text/csv');
+}
+
+function showAlert(m){const e=document.getElementById('alert-main');e.textContent='⚠ '+m;e.classList.add('show');}
+function hideAlert(){document.getElementById('alert-main').classList.remove('show');}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp }        from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyBX_cA8UI0q9RnchtOeCjuC3oyqd_09PHs",
+  authDomain:        "curva-s-obra.firebaseapp.com",
+  databaseURL:       "https://curva-s-obra-default-rtdb.firebaseio.com",
+  projectId:         "curva-s-obra",
+  storageBucket:     "curva-s-obra.firebasestorage.app",
+  messagingSenderId: "897793915681",
+  appId:             "1:897793915681:web:9df592ce3afc8528615c60",
+  measurementId:     "G-1VH3QSB2GH"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ── SYNC HELPERS ────────────────────────────────────────────────────────────
+// Debounce guard so we don't re-trigger on our own writes
+let _ignoreNext = false;
+
+function dbSet(path, value) {
+  _ignoreNext = true;
+  set(ref(db, path), value).catch(e => console.warn('Firebase write error:', e));
+}
+
+// ── WHAT WE PERSIST ─────────────────────────────────────────────────────────
+// /proyecto/csvs          → {ing, pro, con, fechaInicio, fechaCorte}
+// /proyecto/realDiario    → {ing:{}, pro:{}, con:{}}
+// /proyecto/campoLog      → [{...}]
+// /proyecto/restricciones → {tarea: texto}
+
+// Save CSVs + dates (called after procesarTodo)
+window.fbSaveProject = function() {
+  dbSet('proyecto/config', {
+    csvIng:       document.getElementById('csv-ing').value,
+    csvPro:       document.getElementById('csv-pro').value,
+    csvCon:       document.getElementById('csv-con').value,
+    fechaInicio:  document.getElementById('fecha-inicio').value,
+    fechaCorte:   document.getElementById('fecha-corte').value,
+  });
+};
+
+// Save realDiario for a section
+window.fbSaveReal = function(sec) {
+  dbSet('proyecto/realDiario/' + sec, SSTATE[sec].realDiario);
+};
+
+// Save campo log
+window.fbSaveLog = function() {
+  dbSet('proyecto/campoLog', campoLog.length ? campoLog : null);
+};
+
+// Save restricciones
+window.fbSaveRestricciones = function() {
+  dbSet('proyecto/restricciones', Object.keys(CRIT_RESTRICCIONES).length ? CRIT_RESTRICCIONES : null);
+};
+
+// ── LOAD ON START ───────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  // Show sync indicator
+  showSyncBadge('Conectando…', 'dim');
+
+  onValue(ref(db, 'proyecto'), (snap) => {
+    if(_ignoreNext){ _ignoreNext = false; return; }
+    const data = snap.val();
+    if(!data){ showSyncBadge('Base vacía — ingresá datos', 'dim'); return; }
+
+    // Restore CSVs + dates
+    if(data.config){
+      const c = data.config;
+      if(c.csvIng)      document.getElementById('csv-ing').value       = c.csvIng;
+      if(c.csvPro)      document.getElementById('csv-pro').value       = c.csvPro;
+      if(c.csvCon)      document.getElementById('csv-con').value       = c.csvCon;
+      if(c.fechaInicio) document.getElementById('fecha-inicio').value  = c.fechaInicio;
+      if(c.fechaCorte)  document.getElementById('fecha-corte').value   = c.fechaCorte;
+    }
+
+    // Restore realDiario
+    if(data.realDiario){
+      ['ing','pro','con'].forEach(sec=>{
+        if(data.realDiario[sec]) SSTATE[sec].realDiario = data.realDiario[sec];
+      });
+    }
+
+    // Restore campo log
+    if(data.campoLog && Array.isArray(data.campoLog)){
+      campoLog = data.campoLog;
+    } else if(data.campoLog){
+      campoLog = Object.values(data.campoLog);
+    }
+
+    // Restore restricciones
+    if(data.restricciones){
+      Object.assign(CRIT_RESTRICCIONES, data.restricciones);
+    }
+
+    // Auto-generate if CSVs present
+    const hasCsvs = data.config && data.config.csvIng;
+    if(hasCsvs){
+      try{
+        procesarTodo();
+        // Re-sync T3 inputs with saved realDiario
+        ['ing','pro','con'].forEach(sec=>{
+          document.querySelectorAll(`.t3-input[data-sec="${sec}"]`).forEach(el=>{
+            const key = el.dataset.tarea + '-' + el.dataset.dia;
+            if(SSTATE[sec].realDiario[key] !== undefined){
+              el.value = SSTATE[sec].realDiario[key];
+              colorI(el);
+            }
+          });
+          calcRealSec(sec);
+        });
+        renderCampoLog();
+        showSyncBadge('✓ Sincronizado', 'ok');
+      } catch(e){
+        showSyncBadge('Error al restaurar', 'err');
+        console.warn(e);
+      }
+    } else {
+      showSyncBadge('● En línea', 'ok');
+    }
+  }, (err) => {
+    showSyncBadge('Sin conexión', 'err');
+    console.warn('Firebase error:', err);
+  });
+});
+
+// ── PATCH APP FUNCTIONS TO AUTO-SAVE ────────────────────────────────────────
+// Wrap procesarTodo to also save config
+const _origProcesarTodo = window.procesarTodo;
+window.procesarTodo = function(){
+  _origProcesarTodo();
+  window.fbSaveProject();
+};
+
+// Wrap calcRealSec to save realDiario
+const _origCalcRealSec = window.calcRealSec;
+window.calcRealSec = function(sec){
+  _origCalcRealSec(sec);
+  window.fbSaveReal(sec);
+};
+
+// Wrap guardarCampo to save log
+const _origGuardarCampo = window.guardarCampo;
+window.guardarCampo = function(){
+  _origGuardarCampo();
+  window.fbSaveLog();
+  window.fbSaveReal('con');
+};
+
+// Wrap borrarLogEntry
+const _origBorrarLog = window.borrarLogEntry;
+window.borrarLogEntry = function(id){
+  _origBorrarLog(id);
+  window.fbSaveLog();
+  window.fbSaveReal('con');
+};
+
+// Wrap borrarTodoLog
+const _origBorrarTodo = window.borrarTodoLog;
+window.borrarTodoLog = function(){
+  _origBorrarTodo();
+  window.fbSaveLog();
+  window.fbSaveReal('con');
+};
+
+// Wrap guardarRestriccion
+const _origRestr = window.guardarRestriccion;
+window.guardarRestriccion = function(nombre, val){
+  _origRestr(nombre, val);
+  window.fbSaveRestricciones();
+};
+
+// ── SYNC BADGE ───────────────────────────────────────────────────────────────
+function showSyncBadge(msg, state){
+  const el = document.getElementById('sync-badge');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = state==='ok' ? '#00e5a0' : state==='err' ? '#ff6b35' : '#5a6278';
+}
+
+// ── PWA MANIFEST (inline) ───────────────────────────────────────────────────
+const manifest = {
+  name: "Curva S — Control de Avance de Obra",
+  short_name: "Curva S",
+  start_url: "./",
+  display: "standalone",
+  background_color: "#0d0f14",
+  theme_color: "#0a0c10",
+  icons: [
+    {
+      src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%230a0c10'/%3E%3Cpolygon points='24,24 168,24 168,134 134,168 24,168' fill='%2300e5a0'/%3E%3Ctext x='96' y='115' text-anchor='middle' font-size='72' font-family='monospace' fill='%230a0c10' font-weight='bold'%3ES%3C/text%3E%3C/svg%3E",
+      sizes: "192x192",
+      type: "image/svg+xml"
+    }
+  ]
+};
+const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+document.getElementById('pwa-manifest').href = URL.createObjectURL(blob);
+
+// ── SERVICE WORKER (offline cache) ──────────────────────────────────────────
+if('serviceWorker' in navigator){
+  const swCode = `
+    const CACHE = 'curva-s-v1';
+    const URLS  = [
+      'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js',
+      'https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap'
+    ];
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(URLS).catch(()=>{})));
+      self.skipWaiting();
+    });
+    self.addEventListener('fetch', e => {
+      e.respondWith(
+        fetch(e.request).catch(() => caches.match(e.request))
+      );
+    });
+  `;
+  const swBlob = new Blob([swCode], {type:'application/javascript'});
+  const swUrl  = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swUrl, {scope:'./'}).catch(()=>{});
+}
+</script>
+
+</body>
+</html>
